@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
 	std::string port = PORT_NUM;
 	int portSetIndex=0;
 
-	std::string output = "/tmp/gchd.ts";
+	std::string output;
 	int outputSetIndex=0;
 
 	bool destinationSet=false;

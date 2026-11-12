@@ -1,29 +1,18 @@
-/**
- * Copyright (c) 2014 - 2016 Tolga Cakir <tolga@cevel.net>
- *
- * This source file is part of Sidewinder daemon and is distributed under the
- * MIT License. For more information, see LICENSE file.
- */
-
-#ifndef FIFO_CLASS_H
-#define FIFO_CLASS_H
-
-#include <array>
+#pragma once
+#include <atomic>
 #include <string>
-
-#include <gchd.hpp>
-
+#include <vector>
+#include <sys/types.h>
 class Fifo {
-	public:
-		int enable(std::string output);
-		void disable();
-		void output(std::vector<unsigned char> *buffer);
-		Fifo();
-		~Fifo();
-
-	private:
-		int fd_;
-		std::string output_;
+    int fd_=-1, lockFd_=-1;
+    bool created_=false;
+    dev_t device_=0;
+    ino_t inode_=0;
+    std::string output_;
+public:
+    static std::string defaultPath();
+    int enable(std::string output);
+    void disable() noexcept;
+    void output(std::vector<unsigned char> *buffer, const std::atomic<bool> *cancel=nullptr);
+    ~Fifo() { disable(); }
 };
-
-#endif

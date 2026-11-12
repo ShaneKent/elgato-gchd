@@ -4,6 +4,7 @@ add_library(gchd_core STATIC
   firmware.cpp
   gchd.cpp
   process.cpp
+  output_io.cpp
   socket.cpp
   streamer.cpp
   utility.cpp
