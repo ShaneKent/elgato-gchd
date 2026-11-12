@@ -9,21 +9,26 @@
 #include <iostream>
 
 #include <streamer.hpp>
+#include "output_queue.hpp"
 
 void Streamer::loop() {
-	std::vector<unsigned char> buffer=std::vector<unsigned char>(DATA_BUF);
-
-	if (process_->isActive()) {
-		std::cerr << "Streamer has been started." << std::endl;
-	}
-	while (process_->isActive()) {
-		gchd_->stream(&buffer);
-		if( buffer.size() != 0 ) {
-			disk.output(&buffer);
-			fifo.output(&buffer);
-			socket.output(&buffer);
-		}
-	}
+    OutputQueue writer([&](std::vector<unsigned char> &buffer, const std::atomic<bool> *cancel) {
+        disk.output(&buffer,cancel); fifo.output(&buffer,cancel); socket.output(&buffer,cancel);
+    });
+    std::cerr << "Streamer has been started.\n";
+    try {
+        while (process_->isActive()) {
+            writer.check();
+            std::vector<unsigned char> buffer;
+            gchd_->stream(&buffer);
+            if (!buffer.empty()) writer.push(std::move(buffer));
+        }
+        writer.finish();
+    } catch (...) {
+        try { writer.finish(); } catch (...) {}
+        throw;
+    }
+    std::cerr << "Output: " << writer.written() << " bytes, " << writer.dropped() << " dropped buffers\n";
 }
 
 Streamer::Streamer(GCHD *gchd, Process *process) {

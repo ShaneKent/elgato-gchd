@@ -5,6 +5,7 @@ add_library(gchd_core STATIC
   gchd.cpp
   process.cpp
   output_io.cpp
+  output_queue.cpp
   socket.cpp
   streamer.cpp
   utility.cpp

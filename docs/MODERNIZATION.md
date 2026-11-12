@@ -52,3 +52,23 @@ installers, M01 files differ. get-firmware.sh pins installer hashes, accepts
 only the approved URLs or their exact local installers, verifies all four
 files before installation, and was tested end-to-end for DMG and MSI.
 The optional dmg2img fallback is untested. No firmware/installer is in Git.
+
+## Phase 4 — output safety
+
+Defects 5–11 fixed. Explicit existing FIFO/file/symlink paths are preserved on
+creation failure; only the created inode is unlinked. Default FIFO uses a
+validated private XDG_RUNTIME_DIR or /tmp/gchd-UID directory with mode 0600,
+O_NOFOLLOW and an advisory lock. Safe stale default FIFOs can be reused.
+Writes handle partial writes/EINTR/EAGAIN; EPIPE, disk-full and UDP errors
+propagate. UDP datagrams are never split on short writes. Socket connection
+tries all addresses, frees addrinfo, and defaults to loopback as a destination.
+Signal handlers only set sig_atomic_t; SIGHUP included, second signal _exit.
+SIGPIPE disposition and masks are initialized. PID fd sentinel corrected.
+
+A 256-buffer queue (at most 4 MiB plus in-flight buffers) and writer thread
+separate synchronous USB reads from output latency. Saturation drops newest
+buffers and counts losses; shutdown allows two seconds to drain before
+cancelling nonblocking pipe/socket writes. A blocked kernel write to a regular
+file on an unresponsive filesystem cannot be forcibly cancelled by this design.
+Tests verify preserved files/symlinks, FIFO modes/cleanup, 1 MiB partial pipe
+writes, EPIPE, /dev/full, bounded queue saturation/failure and SIGHUP.
