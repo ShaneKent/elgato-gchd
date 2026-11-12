@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <cstdlib>
 #include <vector>
 
 #include <fcntl.h>
@@ -132,10 +133,12 @@ int GCHD::checkFirmware() {
 	std::vector<std::string> locationList =
 	{"/usr/lib/firmware/gchd/",
 	 "/usr/local/lib/firmware/gchd/",
-	 "./",
 	 "/Applications/Game Capture HD.app/Contents/Resources/Firmware/Beddo/"};
 
-	for (auto it : locationList) {
+    const char *env=std::getenv("GCHD_FIRMWARE_DIR");
+    const std::string overrideDirectory=!firmwareDirectory_.empty() ? firmwareDirectory_ : (env ? env : "");
+    if (!overrideDirectory.empty()) locationList={overrideDirectory + "/"};
+    for (const auto &it : locationList) {
 		for ( unsigned i=0 ; i<nameCount; ++i ) {
 			std::string idle = it + idleNames[i];
 			std::string enc = it + encNames[i];

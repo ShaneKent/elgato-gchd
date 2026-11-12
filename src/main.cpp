@@ -175,12 +175,14 @@ enum class Args:int {
 	VERSION,
 	PID_PATH,
 	RESET,
+	FIRMWARE_DIR,
 };
 
 int main(int argc, char *argv[]) {
 	// object for managing runtime information
 	Process process;
 	bool reset = false;
+	std::string firmwareDirectory;
 
 	// set program name
 	process.setName(argv[0]);
@@ -216,6 +218,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 
 	struct option longOpts[]={
+	{"firmware-dir", required_argument, NULL, (int)Args::FIRMWARE_DIR},
 	{"reset", no_argument, NULL, (int)Args::RESET},
 	{"i", required_argument, NULL, (int)Args::INPUT_SOURCE},
 	{"input", required_argument, NULL, (int)Args::INPUT_SOURCE},
@@ -307,6 +310,7 @@ int main(int argc, char *argv[]) {
 
 			Args arg=(Args)opt;
 			switch (arg) {
+				case Args::FIRMWARE_DIR: firmwareDirectory=optarg; break;
 				case Args::RESET: reset = true; break;
 				case Args::INPUT_SOURCE: {
 					if (std::string(optarg) == "composite") {
@@ -688,6 +692,7 @@ int main(int argc, char *argv[]) {
 	//stack unwinding will destruct object, calling uninit.
 	try {
 		GCHD gchd(&process, inputSettings, transcoderSettings);
+		gchd.setFirmwareDirectory(firmwareDirectory);
 
 		if (reset) { gchd.resetDevice(); return EXIT_SUCCESS; }
 

@@ -5,7 +5,10 @@
 struct UsbTestAccess {
     static void arm(GCHD &g) { g.interfaceClaimed_=true; g.devh_=reinterpret_cast<libusb_device_handle *>(1); }
     static void initialized(GCHD &g) { g.isInitialized_=true; }
-    static void firmware(GCHD &g, const char *path) { g.dlfirm(path); }
+    static void firmware(GCHD &g, const char *path) { FILE *file=fopen(path,"rb");
+        if (!file) { g.dlfirm(path); return; }
+        try { g.uploadFirmware(file,16); } catch (...) { fclose(file); throw; }
+        fclose(file); }
 };
 static int code=0, length=0, calls=0;
 extern "C" int __wrap_libusb_bulk_transfer(libusb_device_handle *, unsigned char, unsigned char *, int, int *transferred, unsigned timeout) {

@@ -1,6 +1,7 @@
 add_library(gchd_core STATIC
   disk.cpp
   fifo.cpp
+  firmware.cpp
   gchd.cpp
   process.cpp
   socket.cpp
@@ -22,7 +23,7 @@ add_library(gchd_core STATIC
   gchd/transcoder.cpp
 )
 target_include_directories(gchd_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(gchd_core PUBLIC gchd_options PkgConfig::LIBUSB Threads::Threads)
+target_link_libraries(gchd_core PUBLIC gchd_options PkgConfig::LIBUSB Threads::Threads OpenSSL::Crypto)
 add_executable(gchd main.cpp)
 target_link_libraries(gchd PRIVATE gchd_core)
 install(TARGETS gchd RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -9,6 +9,7 @@
 #define GCHD_H
 
 #include <array>
+#include <cstdio>
 #include <chrono>
 #include <thread>
 #include <cstdint>
@@ -53,6 +54,7 @@ class GCHD {
 	public:
 		int checkDevice();
 		void resetDevice();
+		void setFirmwareDirectory(const std::string &directory) { firmwareDirectory_=directory; }
 		int init();
 		void stream(std::vector<unsigned char> *buffer, unsigned timeout=TIMEOUT);
 		GCHD(Process *process, InputSettings inputSettings, TranscoderSettings transcoderSettings);
@@ -68,6 +70,7 @@ class GCHD {
 		void usbFailure(int code, const char *operation);
 		int controlTransfer(uint8_t requestType, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t length);
 		bool isInitialized_;
+		std::string firmwareDirectory_;
 		std::string firmwareIdle_;
 		std::string firmwareEnc_;
 		struct libusb_device_handle *devh_;
@@ -209,6 +212,7 @@ class GCHD {
 		std::vector<unsigned char> mailRead( uint8_t port, uint8_t size );
 
 		void dlfirm(const char *file);
+		void uploadFirmware(FILE *file, long filesize);
 		uint8_t readDevice0x9DCD( uint8_t index );
 		void pollOn0x9989ED();
 		void readFrom0x9989EC( unsigned count );

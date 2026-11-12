@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "../utility.hpp"
+#include "../firmware.hpp"
 #include "../gchd.hpp"
 #include "../gchd_hardware.hpp"
 
@@ -548,19 +549,24 @@ void GCHD::dlfirm(const char *file) {
     const long filesize=ftell(bin.get());
     if (filesize <= 0 || filesize > 16*1024*1024) throw usb_error("Invalid firmware file size");
     if (fseek(bin.get(), 0, SEEK_SET) != 0) throw usb_error("Cannot rewind firmware file");
+    Firmware::validate(bin.get(), file);
+    uploadFirmware(bin.get(), filesize);
+}
+
+void GCHD::uploadFirmware(FILE *bin, long filesize) {
     const size_t chunk=deviceType_ == DeviceType::GameCaptureHDNew ? 32768 : 16384;
     std::vector<unsigned char> buffer(chunk);
     for (long offset=0; offset < filesize;) {
         checkUsbOperation();
         const size_t count=std::min(chunk, static_cast<size_t>(filesize-offset));
-        if (fread(buffer.data(), 1, count, bin.get()) != count) throw usb_error("Short firmware read");
+        if (fread(buffer.data(), 1, count, bin) != count) throw usb_error("Short firmware read");
         int transferred=0;
         const int result=libusb_bulk_transfer(devh_, EP_OUT, buffer.data(), static_cast<int>(count), &transferred, 1000);
         if (result < 0) usbFailure(result, "Firmware upload");
         if (transferred != static_cast<int>(count)) throw usb_error("Short firmware upload");
         offset+=static_cast<long>(count);
     }
-    if (ferror(bin.get())) throw usb_error("Firmware read failed");
+    if (ferror(bin)) throw usb_error("Firmware read failed");
 }
 
 //Reads from unknown device. Done so often, made it a subroutine

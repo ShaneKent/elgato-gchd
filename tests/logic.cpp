@@ -1,4 +1,5 @@
 #include "utility.hpp"
+#include "firmware.hpp"
 #include "gchd/psi_pat.hpp"
 #include "gchd/psi_pmt.hpp"
 #include "gchd/psi_sit.hpp"
@@ -6,6 +7,10 @@
 #include <stdexcept>
 static void check(bool ok) { if (!ok) throw std::runtime_error("logic regression"); }
 int main() {
+    FILE *empty=tmpfile(); check(empty!=nullptr);
+    bool rejected=false;
+    try { Firmware::validate(empty,"MB86H57_H58_IDLE"); } catch (const std::runtime_error &) { rejected=true; }
+    fclose(empty); check(rejected);
     unsigned long x=0,y=0;
     check(Utility::parseNumericResolution(x,y," 1920x1080 ") && x==1920 && y==1080);
     for (const auto &bad: {"", "x", "1920x", "x1080", "-1x480", "0x480", "1x2x3", "99999999999999999999999999x480"})
