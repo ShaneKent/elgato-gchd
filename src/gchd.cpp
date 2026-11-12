@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 #include <vector>
 
@@ -75,7 +76,7 @@ void GCHD::checkUsbOperation() {
     } else if (!Process::isActive()) throw usb_error("USB operation interrupted");
 }
 
-void GCHD::usbFailure(int code, const char *operation) {
+void GCHD::usbFailure(int code, const std::string &operation) {
     if (code == LIBUSB_ERROR_NO_DEVICE) deviceGone_ = true;
     throw usb_error(std::string(operation) + ": " + libusb_error_name(code));
 }
@@ -83,7 +84,13 @@ void GCHD::usbFailure(int code, const char *operation) {
 int GCHD::controlTransfer(uint8_t requestType, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t length) {
     checkUsbOperation();
     const int result=libusb_control_transfer(devh_, requestType, request, value, index, data, length, 1000);
-    if (result < 0) usbFailure(result, "USB control transfer");
+    if (result < 0) {
+        std::ostringstream operation;
+        operation << "USB control transfer (type=0x" << std::hex << unsigned(requestType)
+                  << ", request=0x" << unsigned(request) << ", value=0x" << value
+                  << ", index=0x" << index << std::dec << ", length=" << length << ')';
+        usbFailure(result, operation.str());
+    }
     return result;
 }
 

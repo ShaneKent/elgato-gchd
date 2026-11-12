@@ -550,6 +550,7 @@ void GCHD::dlfirm(const char *file) {
     if (filesize <= 0 || filesize > 16*1024*1024) throw usb_error("Invalid firmware file size");
     if (fseek(bin.get(), 0, SEEK_SET) != 0) throw usb_error("Cannot rewind firmware file");
     Firmware::validate(bin.get(), file);
+    std::cerr << "Uploading verified firmware " << file << " (" << filesize << " bytes)\n";
     uploadFirmware(bin.get(), filesize);
 }
 
@@ -562,8 +563,12 @@ void GCHD::uploadFirmware(FILE *bin, long filesize) {
         if (fread(buffer.data(), 1, count, bin) != count) throw usb_error("Short firmware read");
         int transferred=0;
         const int result=libusb_bulk_transfer(devh_, EP_OUT, buffer.data(), static_cast<int>(count), &transferred, 1000);
-        if (result < 0) usbFailure(result, "Firmware upload");
-        if (transferred != static_cast<int>(count)) throw usb_error("Short firmware upload");
+        if (result < 0 || transferred != static_cast<int>(count)) {
+            const std::string operation="Firmware upload at offset "+std::to_string(offset)
+                +" (requested="+std::to_string(count)+", transferred="+std::to_string(transferred)+")";
+            if (result < 0) usbFailure(result,operation);
+            throw usb_error(operation+": short transfer");
+        }
         offset+=static_cast<long>(count);
     }
     if (ferror(bin)) throw usb_error("Firmware read failed");

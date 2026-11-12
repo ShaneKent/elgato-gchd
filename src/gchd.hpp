@@ -70,7 +70,7 @@ class GCHD {
 		bool shuttingDown_ = false;
 		std::chrono::steady_clock::time_point shutdownDeadline_;
 		void checkUsbOperation();
-		void usbFailure(int code, const char *operation);
+		void usbFailure(int code, const std::string &operation);
 		int controlTransfer(uint8_t requestType, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t length);
 		bool isInitialized_;
 		std::string firmwareDirectory_;

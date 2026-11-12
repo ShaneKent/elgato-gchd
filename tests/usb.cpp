@@ -48,7 +48,12 @@ int main() {
         char path[]="/tmp/gchd-test-XXXXXX"; int fd=mkstemp(path); check(fd>=0);
         char data[16]{}; check(write(fd,data,sizeof data)==sizeof data); close(fd);
         code=0; length=1; throws([&] { UsbTestAccess::firmware(g,path); });
-        code=LIBUSB_ERROR_TIMEOUT; throws([&] { UsbTestAccess::firmware(g,path); });
+        code=LIBUSB_ERROR_TIMEOUT;
+        try { UsbTestAccess::firmware(g,path); check(false); }
+        catch (const usb_error &e) {
+            const std::string message=e.what();
+            check(message.find("offset 0")!=std::string::npos && message.find("transferred=1")!=std::string::npos);
+        }
         code=0; length=16; const int before=calls; UsbTestAccess::firmware(g,path); check(calls==before+1);
         unlink(path);
         code=LIBUSB_ERROR_TIMEOUT; length=0;
