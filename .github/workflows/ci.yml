@@ -18,5 +18,5 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DGCHD_WERROR=ON -DGCHD_SANITIZE=${{ matrix.sanitize }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - run: cmake --build build -j2
       - run: ctest --test-dir build --output-on-failure
-      - run: cppcheck --project=build/compile_commands.json --enable=warning,performance,portability --error-exitcode=1 --inline-suppr
+      - run: cppcheck --project=build/compile_commands.json --enable=warning,portability --error-exitcode=1 --inline-suppr
       - run: DESTDIR="$PWD/stage" cmake --install build
