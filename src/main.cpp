@@ -397,7 +397,7 @@ int main(int argc, char *argv[]) {
 					char *end;
 					errno=0;
 					double value=strtod(optarg, &end);
-					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > UINT_MAX || value < 0 ) {
+					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 						parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number.");
 						return EXIT_FAILURE;
 					}
@@ -493,7 +493,7 @@ int main(int argc, char *argv[]) {
 					char *end;
 					errno=0;
 					double value=strtod(optarg, &end);
-					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > UINT_MAX || value < 0 ) {
+					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 						parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number.");
 						return EXIT_FAILURE;
 					}
@@ -555,7 +555,7 @@ int main(int argc, char *argv[]) {
 					char *end;
 					errno=0;
 					float value=strtof(optarg, &end);
-					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > UINT_MAX || value < 0 ) {
+					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 						parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number.");
 						return EXIT_FAILURE;
 					}
@@ -597,7 +597,7 @@ int main(int argc, char *argv[]) {
 						char *end;
 						errno=0;
 					float value=strtof(optarg, &end);
-						if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > UINT_MAX || value < 0 ) {
+						if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 							parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number or `auto`.");
 							return EXIT_FAILURE;
 						}
