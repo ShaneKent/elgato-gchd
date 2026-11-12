@@ -67,20 +67,47 @@ int GCHD::init() {
 	return 0;
 }
 
+void GCHD::checkUsbOperation() {
+    if (deviceGone_) throw usb_error("USB device disconnected (LIBUSB_ERROR_NO_DEVICE)");
+    if (shuttingDown_) {
+        if (std::chrono::steady_clock::now() >= shutdownDeadline_) throw usb_error("Device shutdown deadline expired");
+    } else if (!Process::isActive()) throw usb_error("USB operation interrupted");
+}
+
+void GCHD::usbFailure(int code, const char *operation) {
+    if (code == LIBUSB_ERROR_NO_DEVICE) deviceGone_ = true;
+    throw usb_error(std::string(operation) + ": " + libusb_error_name(code));
+}
+
+int GCHD::controlTransfer(uint8_t requestType, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t length) {
+    checkUsbOperation();
+    const int result=libusb_control_transfer(devh_, requestType, request, value, index, data, length, 1000);
+    if (result < 0) usbFailure(result, "USB control transfer");
+    return result;
+}
+
 void GCHD::stream(std::vector<unsigned char> *buffer, unsigned timeout) {
-	buffer->resize(DATA_BUF); //Make sure full size.
+    buffer->clear();
+    if (!interfaceClaimed_) return;
+    checkUsbOperation();
+    buffer->resize(DATA_BUF);
+    int transferred = 0;
+    const int result=libusb_bulk_transfer(devh_, 0x81, buffer->data(), DATA_BUF, &transferred, timeout ? timeout : TIMEOUT);
+    if (result == LIBUSB_ERROR_OVERFLOW) { buffer->clear(); return; }
+    if (result != 0 && result != LIBUSB_ERROR_TIMEOUT) {
+        buffer->clear(); usbFailure(result, "USB streaming read");
+    }
+    if (transferred < 0 || transferred > DATA_BUF) { buffer->clear(); throw usb_error("Invalid USB read length"); }
+    buffer->resize(static_cast<size_t>(transferred));
+    if (buffer->empty() && result == 0) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
 
-	if (!isInitialized_) {
-		return;
-	}
-
-	int transfer;
-
-	libusb_bulk_transfer(devh_, 0x81, buffer->data(), static_cast<int>(buffer->size()), &transfer, timeout);
-
-	buffer->resize(transfer); //Resize to transferred bytes.
-	//libusb most certainly will partially fill a buffer than timeout
-	//with this operation broken up into multiple transfers.
+void GCHD::resetDevice() {
+    if (openDevice()) throw usb_error("Cannot open device for reset");
+    checkUsbOperation();
+    const int result=libusb_reset_device(devh_);
+    if (result < 0) usbFailure(result, "USB reset (WSL may require usbipd reattach)");
+    std::cerr << "USB reset requested. If the device re-enumerates, reattach it with usbipd before capture.\n";
 }
 
 int GCHD::checkFirmware() {
@@ -133,9 +160,9 @@ int GCHD::checkFirmware() {
 }
 
 int GCHD::openDevice() {
-	libusb_ = libusb_init(nullptr);
+	const int result = libusb_init(&context_);
 
-	if (libusb_) {
+	if (result) {
 		std::cerr << "Error initializing libusb." << std::endl;
 		return 1;
 	}
@@ -143,38 +170,38 @@ int GCHD::openDevice() {
 	// uncomment for verbose debugging
 	//libusb_set_debug(nullptr, LIBUSB_LOG_LEVEL_DEBUG);
 
-	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_0);
+	devh_ = libusb_open_device_with_vid_pid(context_, VENDOR_ELGATO, GAME_CAPTURE_HD_0);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD;
 		return 0;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_1);
+	devh_ = libusb_open_device_with_vid_pid(context_, VENDOR_ELGATO, GAME_CAPTURE_HD_1);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD;
 		return 0;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_2);
+	devh_ = libusb_open_device_with_vid_pid(context_, VENDOR_ELGATO, GAME_CAPTURE_HD_2);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD;
 		return 0;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_3);
+	devh_ = libusb_open_device_with_vid_pid(context_, VENDOR_ELGATO, GAME_CAPTURE_HD_3);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHDNew;
 		return 0;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD60);
+	devh_ = libusb_open_device_with_vid_pid(context_, VENDOR_ELGATO, GAME_CAPTURE_HD60);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD60;
 		std::cerr << "The Elgato Game Capture HD60 is currently not supported." << std::endl;
 		return 1;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD60_S);
+	devh_ = libusb_open_device_with_vid_pid(context_, VENDOR_ELGATO, GAME_CAPTURE_HD60_S);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD60S;
 		std::cerr << "The Elgato Game Capture HD60 S is currently not supported." << std::endl;
@@ -190,9 +217,8 @@ int GCHD::openDevice() {
 }
 
 int GCHD::getInterface() {
-	if (libusb_kernel_driver_active(devh_, INTERFACE_NUM)) {
-		libusb_detach_kernel_driver(devh_, INTERFACE_NUM);
-	}
+    const int detach=libusb_set_auto_detach_kernel_driver(devh_, 1);
+    if (detach < 0 && detach != LIBUSB_ERROR_NOT_SUPPORTED) usbFailure(detach, "Enable automatic kernel driver detach");
 
 	if (libusb_set_configuration(devh_, CONFIGURATION_VALUE)) {
 		if (libusb_set_configuration(devh_, CONFIGURATION_VALUE)) {
@@ -206,31 +232,39 @@ int GCHD::getInterface() {
 		return 1;
 	}
 
+	interfaceClaimed_ = true;
 	return 0;
 }
 
 void GCHD::setupConfiguration() {
 	// set device configuration
 	std::cerr << "Initializing device." << std::endl;
-	isInitialized_ = true;
 	configureDevice();
+	isInitialized_ = true;
 }
 
-void GCHD::closeDevice() {
+void GCHD::closeDevice() noexcept {
+	shuttingDown_ = true;
+	shutdownDeadline_ = std::chrono::steady_clock::now() + std::chrono::seconds(5);
 	if (devh_) {
-		if (isInitialized_) {
+		if (isInitialized_ && !deviceGone_) {
 			uninitDevice();
 		}
 
-		libusb_release_interface(devh_, INTERFACE_NUM);
+		if (interfaceClaimed_) libusb_release_interface(devh_, INTERFACE_NUM);
 		libusb_close(devh_);
+		devh_ = nullptr;
+		interfaceClaimed_ = false;
+		isInitialized_ = false;
 	}
 }
 
 
 GCHD::GCHD(Process *process, InputSettings inputSettings, TranscoderSettings transcoderSettings) {
 	devh_ = nullptr;
-	libusb_ = 1;
+	savedEnableRegister_ = 0;
+	savedEnableStateRegister_ = 0;
+	specialDetectMask_ = 0xffff;
 	isInitialized_ = false;
 	deviceType_ = DeviceType::Unknown;
 	process_ = process;
@@ -246,12 +280,12 @@ GCHD::GCHD(Process *process, InputSettings inputSettings, TranscoderSettings tra
 	process->setActive(true);
 }
 
-GCHD::~GCHD() {
+GCHD::~GCHD() noexcept {
 	// uninit and close device
 	closeDevice();
 
 	// deinitialize libusb
-	if (!libusb_) {
-		libusb_exit(nullptr);
+	if (context_) {
+		libusb_exit(context_);
 	}
 }
