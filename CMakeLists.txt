@@ -26,3 +26,5 @@ set(GCHD_UDEV_RULES_DIR "lib/udev/rules.d" CACHE STRING "udev rule install direc
 install(FILES udev-rules/55-elgato-game-capture.rules DESTINATION ${GCHD_UDEV_RULES_DIR})
 install(FILES README.md CREDITS.md LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
 install(DIRECTORY docs/ DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
+install(PROGRAMS scripts/gchd-record.sh DESTINATION ${CMAKE_INSTALL_BINDIR})

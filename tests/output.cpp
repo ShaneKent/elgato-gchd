@@ -68,9 +68,22 @@ int main() {
     release=true; queue.finish(); check(queue.written()==3 && queue.dropped()==1 && queue.droppedBytes()==1);
     OutputQueue failed([](OutputQueue::Buffer &,const std::atomic<bool> *) { throw std::runtime_error("sink failed"); });
     failed.push({1}); bool failure=false; try { failed.finish(); } catch(const std::runtime_error &) { failure=true; } check(failure);
+    int blocked[2]; check(pipe2(blocked,O_NONBLOCK|O_CLOEXEC)==0);
+    unsigned char fill[4096]{}; while(write(blocked[1],fill,sizeof fill)>0) {}
+    std::atomic<bool> waiting{false};
+    OutputQueue stalled([&](OutputQueue::Buffer &b,const std::atomic<bool> *cancel) {
+        waiting=true; OutputIO::writeAll(blocked[1],b.data(),b.size(),cancel);
+    });
+    stalled.push({42}); while(!waiting) std::this_thread::yield();
+    const auto shutdownStart=std::chrono::steady_clock::now(); stalled.finish();
+    check(std::chrono::steady_clock::now()-shutdownStart<std::chrono::seconds(4));
+    check(stalled.dropped()==1); close(blocked[0]); close(blocked[1]);
     pid_t child=fork(); check(child>=0);
     if (child==0) { Process p; Process::setActive(true); raise(SIGHUP); _exit(Process::isActive() ? 1 : 0); }
     int status=0; check(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==0);
+    child=fork(); check(child>=0);
+    if (child==0) { Process p; raise(SIGTERM); raise(SIGTERM); _exit(1); }
+    check(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==128+SIGTERM);
     for (const auto &p: {existing,existing+".lock",alias,alias+".lock",fifoPath+".lock"}) unlink(p.c_str());
     check(rmdir(directory)==0);
 }

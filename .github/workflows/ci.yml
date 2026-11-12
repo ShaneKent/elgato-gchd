@@ -14,7 +14,7 @@ jobs:
           - {compiler: clang++, sanitize: 'ON'}
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev libssl-dev cppcheck
+      - run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev libssl-dev cppcheck ffmpeg
       - run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DGCHD_WERROR=ON -DGCHD_SANITIZE=${{ matrix.sanitize }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - run: cmake --build build -j2
       - run: ctest --test-dir build --output-on-failure

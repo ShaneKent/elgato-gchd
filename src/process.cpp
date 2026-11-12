@@ -17,7 +17,7 @@
 #include <process.hpp>
 
 // constants
-constexpr auto version = "0.2.0";
+constexpr auto version = "0.3.0";
 
 std::atomic<bool> Process::isActive_;
 volatile sig_atomic_t Process::stopSignal_ = 0;
