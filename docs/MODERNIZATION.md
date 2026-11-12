@@ -94,3 +94,55 @@ lib/udev/rules.d directory; GCHD_UDEV_RULES_DIR can select /etc/udev/rules.d.
 Actual seat ACL/device access remains unverified; WSL often lacks a desktop
 seat or running udev. The WSL guide describes a narrow per-device permission
 fallback and the need to reapply it after reattach.
+
+## Phase 7 — documentation and recording wrapper
+
+README and WSL2.md document build, official firmware extraction, non-root use,
+new FIFO location, stdout/ffmpeg recording, reset and attach behavior. Windows
+commands are separated into one-time admin bind and recurring non-admin attach.
+No Windows commands were executed in this modernization task.
+
+gchd-record.sh forwards stop signals as SIGINT to the driver, waits for EOF and
+ffmpeg container finalization, refuses existing output, and checks both child
+exit statuses. TS/MKV use stream copy; MP4/MOV preserve video and encode AAC audio.
+Synthetic ffmpeg H.264/MPEG-audio fixtures verified MKV stream copy, MP4/AAC
+output, stop forwarding and finalization, overwrite refusal, and cleanup after
+a forced ffmpeg error. This is not a hardware capture test.
+
+## Phase 8 — hardware acceptance remains outstanding
+
+The original 0fd9:0044 enumerated during Phase 0 but was disconnected by the
+time software hardening was complete. A second lsusb showed only root hubs.
+The hardened driver was not run against the device. Firmware load, valid
+30-second capture, real Ctrl+C/restart, unplug, reset recovery, permissions,
+and 30+ minute USB/IP recording are all unverified.
+
+The other agent shared upstream-only evidence: control EPIPE errors followed by
+destructor aborts; after a power cycle, revision V1100090 was read but firmware
+bulk upload hung. Its shared workspace logs were preserved and not modified.
+That evidence does not isolate USB/IP from protocol/device compatibility and
+does not demonstrate working capture.
+
+Next: reattach/power-cycle with your Windows commands, then run the WSL guide's
+acceptance sequence while collecting stderr and ffprobe output. Implement 4–8
+async bulk-IN transfers only if measured latency/loss justifies them; no
+experimental fork code has been copied and no async path is enabled here.
+
+## Defect and verification summary
+
+| Review defects | Result | Evidence |
+| --- | --- | --- |
+| 1–4 USB reads, cleanup, infinite waits, firmware I/O | Fixed in software | USB fault mocks, ASan/UBSan, static review |
+| 5–6 FIFO ownership/default path | Fixed | Existing-file/symlink preservation, private mode/cleanup tests |
+| 7–8 writes/backpressure | Fixed | Partial writes, EPIPE, /dev/full, queue saturation and bounded cancellation tests |
+| 9 socket connection loop | Fixed | Reviewed address iteration and RAII cleanup; real network streaming unverified |
+| 10–11 signals | Fixed | Initialized dispositions, SIGHUP and second-signal subprocess tests |
+| 12 udev tags | Fixed | udevadm verify; real permissions unverified |
+
+Additional fixes: explicit libusb context and automatic kernel-driver reattach;
+firmware override/hash checks and no implicit cwd search; resolution/numeric
+validation; matching CLI help and alias; PID descriptor sentinel.
+
+Deferred/out of scope: V4L2/v4l2loopback, multi-card support, upstream dev merge,
+analog fixes, HD60/HD60 S, mode detection, source changes on the fly, and
+sub-480i inputs. The large protocol configuration class remains for later work.
