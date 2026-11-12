@@ -85,3 +85,12 @@ adds input-no-stretch while preserving no-input-stretch. Numeric parsing
 rejects non-finite/overflow values before unsafe casts. A related H.264 level
 conversion swapped modf outputs; level 4.1 now converts to 41 correctly.
 Tests include stdout byte fidelity and timed mocked streaming.
+
+## Phase 6 — non-root use
+
+Defect 12 fixed: udev appends elgato_gchd and uaccess tags, retaining the video
+group/mode 0660 fallback. CMake installs the rule in an architecture-independent
+lib/udev/rules.d directory; GCHD_UDEV_RULES_DIR can select /etc/udev/rules.d.
+Actual seat ACL/device access remains unverified; WSL often lacks a desktop
+seat or running udev. The WSL guide describes a narrow per-device permission
+fallback and the need to reapply it after reattach.
