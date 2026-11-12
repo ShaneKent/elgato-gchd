@@ -6,6 +6,8 @@
  */
 
 #include <cstdint>
+#include <cerrno>
+#include <cstdlib>
 #include <climits>
 #include <iterator>
 #include <cmath>
@@ -90,62 +92,44 @@ namespace Utility
 	// [::1]:1 is IPV6 loopback address port 1.
 	// 127.0.0.1:1 IPV4 example
 	// [127.0.0.1]:1 optional IPV4 usage.
-	bool splitIPAddressAndPort( std::string &address, std::string &port, const std::string &passedInput) {
-		address="";
-		port="";
+	bool parseNumericResolution(unsigned long &x, unsigned long &y, const std::string &input) {
+        const auto separator = input.find('x');
+        if (separator == std::string::npos || input.find('x', separator+1) != std::string::npos) return false;
+        unsigned long values[2]{};
+        std::string parts[] = {input.substr(0, separator), input.substr(separator+1)};
+        for (unsigned i=0; i<2; ++i) {
+            trim(parts[i]);
+            if (parts[i].empty() || !std::all_of(parts[i].begin(), parts[i].end(),
+                [](unsigned char c) { return c >= '0' && c <= '9'; })) return false;
+            char *end = nullptr;
+            errno = 0;
+            values[i] = std::strtoul(parts[i].c_str(), &end, 10);
+            if (errno == ERANGE || *end || values[i] == 0) return false;
+        }
+        x=values[0]; y=values[1]; return true;
+    }
 
-		std::string input=passedInput;
-		input=trim(input); //Trim modifies original;
-		//Check for wrapped "[address]"
-		int ipBegin=0;
-		int ipEnd=0;
-		std::string remainder=input;
-		if( input[0] == '[') {
-			++ipBegin;
-			++ipEnd;
-			//Scan for end
-			while( true ) {
-				if (input[ipEnd]==0) { //Didn't find end, pass whole weird thing as
-					//address, some sort of future address.
-					break;
-				}
-				if (input[ipEnd]==']') {
-					std::string subString=input.substr( ipBegin, ipEnd-ipBegin );
-					address=trim(subString); //trim modifies subString
-					//return substr.
-					remainder=input.substr(ipEnd + 1);
-					remainder=trim(remainder); //trim modifies original
-					break;
-				}
-				++ipEnd;
-			}
-		}   //Okay that takes care of "[address]"
-
-		std::vector<std::string> parts=split( remainder, ':' );
-
-		if (parts.size()==2) { // :port, ipv4:port, [ipv6]:port, or [ipv6]junk:port
-			//ipv6 address is is not, because they have at least two ":" characters.
-			std::string potentialAddress=trim(parts[0]); //This modifies parts[0]
-			if(potentialAddress.size() != 0 ) {
-				if( address.size() == 0 ) {
-					address=potentialAddress;
-				} else {
-					//Something like [::1]3:1, gotta treat as invalid
-					return false;;
-				}
-			}
-			port=trim(parts[1]); //This modifies parts[1]
-		} else {
-			//Gotta be an ipv6 address by itself.
-			if( address.size() == 0 ) {
-				address=input;
-			} else if (remainder.size()!=0) {
-				//Something like [::1]junk
-				return false;
-			}
-		}
-		return true;
-	}
-
+    bool splitIPAddressAndPort(std::string &address, std::string &port, const std::string &passedInput) {
+        address.clear(); port.clear();
+        std::string input=passedInput;
+        trim(input);
+        if (input.empty()) return true;
+        if (input.front() == '[') {
+            const auto end=input.find(']');
+            if (end == std::string::npos) return false;
+            address=input.substr(1, end-1); trim(address);
+            std::string rest=input.substr(end+1); trim(rest);
+            if (address.empty()) return false;
+            if (rest.empty()) return true;
+            if (rest.front() != ':') return false;
+            port=rest.substr(1); trim(port);
+            return port.find(':') == std::string::npos;
+        }
+        const auto separator=input.find(':');
+        if (separator != std::string::npos && input.find(':', separator+1) == std::string::npos) {
+            address=input.substr(0, separator); port=input.substr(separator+1);
+            trim(address); trim(port);
+        } else address=input;
+        return true;
+    }
 }
-

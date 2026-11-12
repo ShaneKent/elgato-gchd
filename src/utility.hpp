@@ -15,6 +15,7 @@
 
 namespace Utility
 {
+	bool parseNumericResolution(unsigned long &x, unsigned long &y, const std::string &input);
 
 	template<typename T, typename I>
 	static T debyteify(I iterator, unsigned limit=UINT_MAX)

@@ -1,0 +1,5 @@
+add_executable(logic_tests logic.cpp)
+target_link_libraries(logic_tests PRIVATE gchd_core)
+add_test(NAME logic COMMAND logic_tests)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cli.py $<TARGET_FILE:gchd>)

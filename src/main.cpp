@@ -148,29 +148,6 @@ void version(std::string name, std::string version) {
 	std::cerr << name << " " << version << std::endl;
 }
 
-bool parseNumericResolution( unsigned long &x, unsigned long &y, const std::string input ) {
-	std::vector<std::string> splitValues=Utility::split(input,'x');
-	std::vector<unsigned long> numbers=std::vector<unsigned long>();
-
-	for( auto it = splitValues.begin(); it != splitValues.end(); ++it) {
-		char *endPtr;
-		std::string copy=*it;
-		copy=Utility::trim(copy); //Modifies copy
-
-		long value=strtoul( copy.c_str(), &endPtr, 10);
-
-		if( *endPtr != 0 ) {
-			return false;
-		}
-		numbers.push_back(value);
-	}
-	if( numbers.size() != 2 ) {
-		return false;
-	}
-	x=numbers[0];
-	y=numbers[1];
-	return true;
-}
 
 enum class Args:int {
 	INPUT_SOURCE=1,
@@ -374,7 +351,7 @@ int main(int argc, char *argv[]) {
 						inputSettings.setResolution(Resolution::Unknown);
 					} else {
 						unsigned long x,y;
-						bool valid=parseNumericResolution( x, y, std::string(optarg) );
+						bool valid=Utility::parseNumericResolution( x, y, std::string(optarg) );
 						if( valid ) {
 							Resolution grabResolution;
 							try {
@@ -476,7 +453,7 @@ int main(int argc, char *argv[]) {
 						transcoderSettings.setResolution(Resolution::Unknown);
 					} else {
 						unsigned long x,y;
-						bool valid=parseNumericResolution( x, y, std::string(optarg) );
+						bool valid=Utility::parseNumericResolution( x, y, std::string(optarg) );
 						if( valid ) {
 							transcoderSettings.setResolution(x, y);
 						} else {
