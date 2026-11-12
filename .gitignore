@@ -12,3 +12,8 @@ mb86*.bin
 *.msi
 *.ts
 *.mp4
+
+# USB traces can contain proprietary firmware payloads.
+*.pcap
+*.pcapng
+*.etl

@@ -1,14 +1,16 @@
 # WSL 2 + usbipd-win recording
 
 This targets the original Game Capture HD (`0fd9:0044`, `004e`, `0051`, `005d`).
-USB enumeration was observed on Ubuntu 24.04 / WSL 2. A successful firmware load,
-video/audio capture, restart, unplug handling and long recording with this fork
-remain **unverified**. The device was disconnected before hardened-driver tests.
+USB enumeration and non-root access were verified on Ubuntu 24.04 / WSL 2.
+**Recording is not yet working on the tested 0fd9:0044 card:** the first idle-
+firmware write timed out with zero bytes reported transferred. Initialization
+errors exited cleanly and SIGINT stopped a real state wait promptly. A successful
+firmware load, valid recording, streaming restart/unplug handling and long capture
+remain unverified. See [hardware results](MODERNIZATION.md#phase-8--hardware-testing-recording-not-yet-working).
 
 ## Windows: once per installation/device
 
-These are commands for you to run in Windows; the modernization task did not
-execute Windows-side commands. Use an administrator PowerShell for installation
+These are commands for you to run in Windows; Windows-side changes require your approval. Use an administrator PowerShell for installation
 and binding. Replace `BUSID` with the current ID from `usbipd list` (the other
 agent previously observed `9-4`, which may change):
 
@@ -90,7 +92,8 @@ build/src/gchd --duration 90s - | ffmpeg -i - -c copy "$HOME/capture.mkv"
 ```
 
 Stop with Ctrl+C once and wait. Disconnects should exit nonzero and cleanup
-cannot throw; those paths are covered by USB fault mocks, not real unplug tests.
+cannot throw; these paths are covered by USB fault mocks. Actual initialization
+timeout and SIGINT tests exited cleanly, but real streaming/unplug tests are pending.
 Stats appear every five seconds on stderr. Nonzero drop/overflow counts mean
 loss; persistent timeouts with zero bytes do not establish a working stream.
 If protocol readiness fails, capture stderr and try a physical power cycle;

@@ -3,7 +3,8 @@
 This fork modernizes the unofficial MIT-licensed libusb driver for the **original
 Elgato Game Capture HD** (VID `0fd9`, PIDs `0044`, `004e`, `0051`, `005d`).
 HD60, HD60 S, and HD60 Pro are unsupported. The protocol remains experimental;
-working capture on WSL 2 has **not yet been verified**. See the
+**recording is not yet working on the tested WSL 2 setup**: the first firmware
+bulk write times out. Error handling and non-root access were tested on hardware. See the
 [phase report](docs/MODERNIZATION.md) and [WSL 2 guide](docs/WSL2.md).
 
 ## Build and install
@@ -141,7 +142,8 @@ A failed partial initialization does not run the complete shutdown sequence.
 
 `gchd --reset` requests a USB reset and exits, without requiring firmware. It may
 re-enumerate the device and require a new usbipd attach in WSL. Recovery from a
-locked device via this option is **unverified**; a physical replug may be needed.
+locked device via this option is **not established**: the reset call succeeded
+in testing but did not restore firmware readiness. A physical replug may be needed.
 
 ## License and future work
 

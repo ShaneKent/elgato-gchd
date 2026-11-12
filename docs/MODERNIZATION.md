@@ -28,6 +28,7 @@ portability cppcheck diagnostics; performance suggestions are outside this gate.
 Defects 1–4 fixed: initialized and checked streaming lengths/status, partial
 timeout data retained, overflow data discarded, fatal errors propagated.
 Explicit libusb context, auto detach/reattach, interface ownership tracked.
+Already-active USB configurations are preserved.
 Only successful configuration sets initialized; partial configuration does not
 attempt the full shutdown protocol. Cleanup never throws, skips removed devices,
 and has a five-second budget plus at most one in-flight transfer.
@@ -36,7 +37,8 @@ check cancellation with 15-second/2000-attempt limits. Firmware I/O and every
 upload chunk are checked (no spurious zero-length final transfer).
 Additive --reset performs a USB reset and exits; WSL may need reattach.
 Mock fault tests cover timeout, overflow, I/O, disconnect, short/missing firmware,
-interruption and non-throwing destruction. Hardware behavior remains unverified.
+interruption and non-throwing destruction. Actual upload-timeout and initialization
+interruption behavior were subsequently tested; see Phase 8.
 
 ## Phase 3 — firmware
 
@@ -91,9 +93,10 @@ Tests include stdout byte fidelity and timed mocked streaming.
 Defect 12 fixed: udev appends elgato_gchd and uaccess tags, retaining the video
 group/mode 0660 fallback. CMake installs the rule in an architecture-independent
 lib/udev/rules.d directory; GCHD_UDEV_RULES_DIR can select /etc/udev/rules.d.
-Actual seat ACL/device access remains unverified; WSL often lacks a desktop
-seat or running udev. The WSL guide describes a narrow per-device permission
-fallback and the need to reapply it after reattach.
+The video-group rule was installed and triggered by the user on WSL, and
+non-root access persisted across subsequent reattachments. Desktop uaccess
+seat ACLs remain unverified. A manual permission fallback is documented for
+WSL environments without udev.
 
 ## Phase 7 — documentation and recording wrapper
 
@@ -109,24 +112,51 @@ Synthetic ffmpeg H.264/MPEG-audio fixtures verified MKV stream copy, MP4/AAC
 output, stop forwarding and finalization, overwrite refusal, and cleanup after
 a forced ffmpeg error. This is not a hardware capture test.
 
-## Phase 8 — hardware acceptance remains outstanding
+## Phase 8 — hardware testing: recording not yet working
 
-The original 0fd9:0044 enumerated during Phase 0 but was disconnected by the
-time software hardening was complete. A second lsusb showed only root hubs.
-The hardened driver was not run against the device. Firmware load, valid
-30-second capture, real Ctrl+C/restart, unplug, reset recovery, permissions,
-and 30+ minute USB/IP recording are all unverified.
+Original card: 0fd9:0044, revision V1100090. User reports HDMI around 480p and
+confirmed video/audio preview in the official Windows app. Firmware from the
+approved Mac 2.0.3 installer passed size/hash validation before each upload.
+Tests ran as the regular Linux user after granting video-group access.
 
-The other agent shared upstream-only evidence: control EPIPE errors followed by
-destructor aborts; after a power cycle, revision V1100090 was read but firmware
-bulk upload hung. Its shared workspace logs were preserved and not modified.
-That evidence does not isolate USB/IP from protocol/device compatibility and
-does not demonstrate working capture.
+| Test | Observed result |
+| --- | --- |
+| First guarded capture | Firmware upload timed out; exit 1 in 1.03 s, zero stream bytes |
+| Warm retry | Device-state wait expired; exit 1 in 9.13 s, zero bytes |
+| gchd --reset | Returned 0 in 0.28 s; device remained attached |
+| Capture after reset | State wait still failed; reset did not restore firmware readiness |
+| Physical power cycle, diagnostic capture | First idle-firmware chunk: offset 0, requested 16384, transferred 0; timeout and exit 1 in 1.14 s |
+| SIGINT during real initialization | Clean interrupted-error exit 1, approximately 4 ms after SIGINT; no abort |
+| Official Windows preview then close/reattach | First idle-firmware chunk still timed out; zero stream bytes |
+| Preserve already-active USB configuration | Mock tests pass; real warm-start comparison still failed at first firmware chunk |
+| Persistent udev rule | root:video 0660 and regular-user USB access observed after reattachments |
 
-Next: reattach/power-cycle with your Windows commands, then run the WSL guide's
-acceptance sequence while collecting stderr and ffprobe output. Implement 4–8
-async bulk-IN transfers only if measured latency/loss justifies them; no
-experimental fork code has been copied and no async path is enabled here.
+No successful firmware upload, valid 30-second recording, or real stream has
+been observed. Streaming Ctrl+C/restart, unplug during streaming, loss counts
+and 30+ minute USB/IP recording remain unverified. Partial upload errors can
+leave the card waiting for a state transition; USB reset did not recover that
+condition in this test. A reliable recovery guarantee has not been achieved.
+
+Added focused diagnostics for firmware offsets/lengths and named hardware
+waits. USB setup now preserves an already-active configuration, avoiding the
+lightweight reset documented by libusb; this did not solve the observed upload
+failure. Mock tests cover configuration selection and deadline/attempt bounds.
+
+Sanitized results: [hardware-results-2026-11-11.json](hardware-results-2026-11-11.json).
+Full logs remain locally under artifacts/ and are excluded from Git. The other
+agent's upstream-only logs in the shared workspace were preserved unchanged.
+
+The failure is before HDMI detection or bulk-IN streaming. There is no evidence
+that input resolution or async receive queues would fix it. The current evidence
+does not distinguish an unofficial-driver boot-protocol mismatch from USB/IP
+transport behavior. The next useful comparison is official Windows startup USB
+requests versus the WSL startup. Windows ETW/Logman is available and can collect
+headers/status without installing a driver or restarting. USBPcap is optional,
+not a prerequisite. No new Windows capture driver has been installed.
+
+Native Windows preview was performed by the user. Subsequent agent Windows
+commands were explicitly approved inventory/provider checks only; no trace or
+attachment change has been performed by the agent as of this report.
 
 ## Defect and verification summary
 
