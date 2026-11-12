@@ -37,3 +37,18 @@ upload chunk are checked (no spurious zero-length final transfer).
 Additive --reset performs a USB reset and exits; WSL may need reattach.
 Mock fault tests cover timeout, overflow, I/O, disconnect, short/missing firmware,
 interruption and non-throwing destruction. Hardware behavior remains unverified.
+
+## Phase 3 — firmware
+
+Added --firmware-dir (highest priority), GCHD_FIRMWARE_DIR, then system/Mac
+paths. Explicit overrides are exclusive, and implicit current-directory search
+is removed. Runtime verifies SHA-256 and exact length before each upload, on
+the same open file. OpenSSL Crypto is now a build dependency.
+
+Both approved official installers were downloaded over HTTPS and extracted
+with 7z successfully. Eight versioned size/hash records are in
+[firmware-hashes.json](firmware-hashes.json); H57/H58 files match across both
+installers, M01 files differ. get-firmware.sh pins installer hashes, accepts
+only the approved URLs or their exact local installers, verifies all four
+files before installation, and was tested end-to-end for DMG and MSI.
+The optional dmg2img fallback is untested. No firmware/installer is in Git.
