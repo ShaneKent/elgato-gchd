@@ -17,3 +17,5 @@ if(GCHD_FFMPEG AND GCHD_FFPROBE)
   add_test(NAME recording_wrapper COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/recording.py ${PROJECT_SOURCE_DIR}/scripts/gchd-record.sh)
   set_tests_properties(recording_wrapper PROPERTIES TIMEOUT 60)
 endif()
+
+add_test(NAME etw_parser COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/etw.py)
