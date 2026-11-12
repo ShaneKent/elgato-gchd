@@ -35,13 +35,18 @@ class usb_error: public runtime_error
 };
 
 class UsbPollBudget {
-    std::chrono::steady_clock::time_point deadline_ = std::chrono::steady_clock::now() + std::chrono::seconds(15);
-    unsigned attempts_ = 0;
+    std::string operation_;
+    std::chrono::steady_clock::time_point deadline_;
+    unsigned maxAttempts_, attempts_=0;
 public:
+    explicit UsbPollBudget(const std::string &operation="device state",
+                           std::chrono::milliseconds timeout=std::chrono::seconds(15),
+                           unsigned maxAttempts=2000):
+        operation_(operation), deadline_(std::chrono::steady_clock::now()+timeout), maxAttempts_(maxAttempts) {}
     void check(bool shuttingDown) {
         if (!shuttingDown && !Process::isActive()) throw usb_error("USB operation interrupted");
-        if (++attempts_ > 2000 || std::chrono::steady_clock::now() >= deadline_)
-            throw usb_error("Timed out waiting for device state");
+        if (++attempts_ > maxAttempts_ || std::chrono::steady_clock::now() >= deadline_)
+            throw usb_error("Timed out waiting for "+operation_);
         if (attempts_ > 1) std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 };

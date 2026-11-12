@@ -92,7 +92,7 @@ void GCHD::configureHDMI()
 	bool rgbBit;
 
 	unsigned iterationCount=0;
-	UsbPollBudget poll0;
+	UsbPollBudget poll0("HDMI input lock");
 	do {
 		poll0.check(shuttingDown_);
 		checkUsbOperation();

@@ -53,7 +53,7 @@ void GCHD::configureDevice()
 		if( state == 0x0000 )
 		{
 			interruptPend();
-			UsbPollBudget poll0;
+			UsbPollBudget poll0("initial device state transition");
 			do
 			{
 				poll0.check(shuttingDown_);
@@ -111,7 +111,7 @@ void GCHD::configureDevice()
 	uint32_t deviceModeMagic;
 	bool firstTime=true;
 
-	UsbPollBudget initializationPoll;
+	UsbPollBudget initializationPoll("firmware processor startup");
 	while(!loopDone)
 	{
 		initializationPoll.check(shuttingDown_);
@@ -251,7 +251,7 @@ void GCHD::configureDevice()
 
 	//We can go back to 0x334455 after we turn on EB_ENCODER_ENABLE in some cases,
 	//Wait till we are 0x27f97b
-	UsbPollBudget poll1;
+	UsbPollBudget poll1("encoder enable readiness");
 	do
 	{
 		poll1.check(shuttingDown_);
@@ -269,7 +269,7 @@ void GCHD::configureDevice()
 	mailRead( 0x33, 2 ); //EXPECTED {0xda, 0x67}
 
 	doEnable( EB_ENCODER_TRIGGER, EB_ENCODER_TRIGGER ); //Turn on trigger bit
-	UsbPollBudget poll2;
+	UsbPollBudget poll2("encoder trigger acknowledgement");
 	do
 	{
 		poll2.check(shuttingDown_);
@@ -1286,7 +1286,7 @@ void GCHD::configureCommonBlockB2()
 	//This is a subroutine in original driver as it happens at a few lone times.
 	{
 		uint8_t testValue;
-		UsbPollBudget poll3;
+		UsbPollBudget poll3("video input lock");
 		do {
 			poll3.check(shuttingDown_);
 			checkUsbOperation();

@@ -27,7 +27,15 @@ extern "C" int __wrap_libusb_release_interface(libusb_device_handle *, int) { re
 static void check(bool ok) { if (!ok) throw std::runtime_error("USB regression"); }
 template<class F> void throws(F f) { bool caught=false; try { f(); } catch (const usb_error &) { caught=true; } check(caught); }
 int main() {
-    Process process;
+    Process process; Process::setActive(true);
+    UsbPollBudget attempts("test completion",std::chrono::seconds(1),1);
+    attempts.check(false);
+    try { attempts.check(false); check(false); }
+    catch(const usb_error &e) { check(std::string(e.what()).find("test completion")!=std::string::npos); }
+    UsbPollBudget expired("test deadline",std::chrono::milliseconds(0));
+    throws([&] { expired.check(false); });
+    Process::setActive(false); UsbPollBudget cancelled;
+    throws([&] { cancelled.check(false); });
     {
         GCHD g(&process,InputSettings(),TranscoderSettings()); UsbTestAccess::arm(g);
         std::vector<unsigned char> b(10,0xab);

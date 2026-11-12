@@ -78,7 +78,7 @@ void GCHD::configureComponent()
 	double value6665;
 
 	unsigned iterationCount=0;
-	UsbPollBudget poll0;
+	UsbPollBudget poll0("component input lock");
 	do {
 		poll0.check(shuttingDown_);
 		checkUsbOperation();

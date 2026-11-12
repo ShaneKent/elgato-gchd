@@ -70,7 +70,7 @@ void GCHD::interruptPend()
 void GCHD::sendEnableState()
 {
 	uint16_t status;
-	UsbPollBudget poll0;
+	UsbPollBudget poll0("mailbox ready after enable-state write");
 	do {
 		poll0.check(shuttingDown_);
 		checkUsbOperation();
@@ -196,7 +196,7 @@ void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
 			{
 				interruptPend();
 				uint16_t value;
-				UsbPollBudget poll1;
+				UsbPollBudget poll1("system-command receipt");
 				do
 				{
 					poll1.check(shuttingDown_);
@@ -215,12 +215,12 @@ uint16_t GCHD::completeStateChange( uint16_t currentState,
 	bool firstTime=true;
 	uint16_t state;
 	bool changed=false;
-	UsbPollBudget poll2;
+	UsbPollBudget poll2("requested device state");
 	do
 	{
 		poll2.check(shuttingDown_);
 		checkUsbOperation();
-		UsbPollBudget poll3;
+		UsbPollBudget poll3("device state-change completion");
 		do
 		{
 			poll3.check(shuttingDown_);
@@ -434,7 +434,7 @@ void GCHD::transcoderTableWrite(uint16_t address, std::vector<uint8_t> &data)
 void GCHD::mailReadyWait()
 {
 	uint16_t status;
-	UsbPollBudget poll4;
+	UsbPollBudget poll4("mailbox ready");
 	do {
 		poll4.check(shuttingDown_);
 		checkUsbOperation();
@@ -587,7 +587,7 @@ uint8_t GCHD::readDevice0x9DCD( uint8_t index )
 void GCHD::pollOn0x9989ED()
 {
 	uint8_t input;
-	UsbPollBudget poll5;
+	UsbPollBudget poll5("decoder poll completion");
 	do
 	{
 		poll5.check(shuttingDown_);
@@ -669,7 +669,7 @@ void GCHD::clearEnableState()
 	//And we grab it again after turning it off.
 	//This time we poll on it till it is ready, just in case.
 	uint32_t result;
-	UsbPollBudget poll6;
+	UsbPollBudget poll6("firmware processor shutdown");
 	do
 	{
 		poll6.check(shuttingDown_);
