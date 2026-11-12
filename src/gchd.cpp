@@ -231,17 +231,16 @@ int GCHD::getInterface() {
     const int detach=libusb_set_auto_detach_kernel_driver(devh_, 1);
     if (detach < 0 && detach != LIBUSB_ERROR_NOT_SUPPORTED) usbFailure(detach, "Enable automatic kernel driver detach");
 
-	if (libusb_set_configuration(devh_, CONFIGURATION_VALUE)) {
-		if (libusb_set_configuration(devh_, CONFIGURATION_VALUE)) {
-			std::cerr << "Could not set configuration." << std::endl;
-			return 1;
-		}
-	}
-
-	if (libusb_claim_interface(devh_, INTERFACE_NUM)) {
-		std::cerr << "Failed to claim interface." << std::endl;
-		return 1;
-	}
+    // Reselecting an active configuration resets endpoint state; preserve it.
+    int configuration=0;
+    int result=libusb_get_configuration(devh_,&configuration);
+    if (result < 0) usbFailure(result,"Read USB configuration");
+    if (configuration != CONFIGURATION_VALUE) {
+        result=libusb_set_configuration(devh_,CONFIGURATION_VALUE);
+        if (result < 0) usbFailure(result,"Set USB configuration");
+    }
+    result=libusb_claim_interface(devh_,INTERFACE_NUM);
+    if (result < 0) usbFailure(result,"Claim USB interface");
 
 	interfaceClaimed_ = true;
 	return 0;

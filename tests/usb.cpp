@@ -5,6 +5,7 @@
 #include <stdexcept>
 struct UsbTestAccess {
     static void arm(GCHD &g) { g.interfaceClaimed_=true; g.devh_=reinterpret_cast<libusb_device_handle *>(1); }
+    static int claim(GCHD &g) { g.devh_=reinterpret_cast<libusb_device_handle *>(1); return g.getInterface(); }
     static void initialized(GCHD &g) { g.isInitialized_=true; }
     static void firmware(GCHD &g, const char *path) { FILE *file=fopen(path,"rb");
         if (!file) { g.dlfirm(path); return; }
@@ -12,6 +13,11 @@ struct UsbTestAccess {
         fclose(file); }
 };
 static int code=0, length=0, calls=0;
+static int configuration=1, configurationResult=0, setConfigurationCalls=0;
+extern "C" int __wrap_libusb_set_auto_detach_kernel_driver(libusb_device_handle *, int) { return 0; }
+extern "C" int __wrap_libusb_get_configuration(libusb_device_handle *, int *current) { *current=configuration; return configurationResult; }
+extern "C" int __wrap_libusb_set_configuration(libusb_device_handle *, int next) { ++setConfigurationCalls; configuration=next; return 0; }
+extern "C" int __wrap_libusb_claim_interface(libusb_device_handle *, int) { return 0; }
 extern "C" int __wrap_libusb_bulk_transfer(libusb_device_handle *, unsigned char, unsigned char *, int, int *transferred, unsigned timeout) {
     if (!timeout) throw std::runtime_error("infinite timeout");
     ++calls;
@@ -28,6 +34,12 @@ static void check(bool ok) { if (!ok) throw std::runtime_error("USB regression")
 template<class F> void throws(F f) { bool caught=false; try { f(); } catch (const usb_error &) { caught=true; } check(caught); }
 int main() {
     Process process; Process::setActive(true);
+    { GCHD g(&process,InputSettings(),TranscoderSettings()); check(UsbTestAccess::claim(g)==0); check(setConfigurationCalls==0); }
+    configuration=0;
+    { GCHD g(&process,InputSettings(),TranscoderSettings()); check(UsbTestAccess::claim(g)==0); check(setConfigurationCalls==1 && configuration==1); }
+    configurationResult=LIBUSB_ERROR_NO_DEVICE;
+    { GCHD g(&process,InputSettings(),TranscoderSettings()); throws([&] { UsbTestAccess::claim(g); }); check(setConfigurationCalls==1); }
+    configurationResult=0;
     UsbPollBudget attempts("test completion",std::chrono::seconds(1),1);
     attempts.check(false);
     try { attempts.check(false); check(false); }
