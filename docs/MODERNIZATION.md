@@ -72,3 +72,16 @@ cancelling nonblocking pipe/socket writes. A blocked kernel write to a regular
 file on an unresponsive filesystem cannot be forcibly cancelled by this design.
 Tests verify preserved files/symlinks, FIFO modes/cleanup, 1 MiB partial pipe
 writes, EPIPE, /dev/full, bounded queue saturation/failure and SIGHUP.
+
+## Phase 5 — CLI recording
+
+Added gchd -, -o -, and -of stdout; only the selected sink is written.
+Stdout is binary-only, rejects terminals, and restores pipe flags on close.
+--duration accepts positive seconds or s/m/h suffixes and counts time after
+initialization. Five-second stderr stats and final stats report USB/output
+bytes, bitrate, dropped buffers/bytes, USB overflows and timeouts.
+Help reflects runtime FIFO paths, hides disabled PID/frame-rate flags, and
+adds input-no-stretch while preserving no-input-stretch. Numeric parsing
+rejects non-finite/overflow values before unsafe casts. A related H.264 level
+conversion swapped modf outputs; level 4.1 now converts to 41 correctly.
+Tests include stdout byte fidelity and timed mocked streaming.

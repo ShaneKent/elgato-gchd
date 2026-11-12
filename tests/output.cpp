@@ -38,6 +38,11 @@ int main() {
     { Fifo fifo; check(fifo.enable(fifoPath)==0); check(lstat(fifoPath.c_str(),&st)==0 && (st.st_mode&0777)==0600);
       std::vector<unsigned char> b{42}; fifo.output(&b); reader.join(); }
     check(lstat(fifoPath.c_str(),&st)<0);
+    int stdoutPipe[2]; check(pipe(stdoutPipe)==0); const int savedStdout=dup(STDOUT_FILENO);
+    check(dup2(stdoutPipe[1],STDOUT_FILENO)>=0); close(stdoutPipe[1]);
+    { Disk stdoutOutput; check(stdoutOutput.enableStdout()==0); std::vector<unsigned char> b{17,42}; stdoutOutput.output(&b); }
+    check(dup2(savedStdout,STDOUT_FILENO)>=0); close(savedStdout);
+    unsigned char actual[2]{}; check(read(stdoutPipe[0],actual,2)==2 && actual[0]==17 && actual[1]==42); close(stdoutPipe[0]);
     int pipes[2]; check(pipe2(pipes,O_NONBLOCK|O_CLOEXEC)==0);
     std::vector<unsigned char> data(1024*1024,42); size_t received=0;
     std::thread drain([&] {

@@ -1,5 +1,6 @@
 #include "utility.hpp"
 #include "firmware.hpp"
+#include "gchd/settings.hpp"
 #include "gchd/psi_pat.hpp"
 #include "gchd/psi_pmt.hpp"
 #include "gchd/psi_sit.hpp"
@@ -11,6 +12,12 @@ int main() {
     bool rejected=false;
     try { Firmware::validate(empty,"MB86H57_H58_IDLE"); } catch (const std::runtime_error &) { rejected=true; }
     fclose(empty); check(rejected);
+    check(TranscoderSettings::unsignedH264Level(4.1f)==41);
+    double seconds=0;
+    check(Utility::parseDuration(seconds,"10m") && seconds==600);
+    check(Utility::parseDuration(seconds,"90s") && seconds==90);
+    check(Utility::parseDuration(seconds,"0.1s") && seconds==0.1);
+    for (const auto &bad: {"", "0", "-1s", "nan", "inf", "10ms", "1x", "999999999999h"}) check(!Utility::parseDuration(seconds,bad));
     unsigned long x=0,y=0;
     check(Utility::parseNumericResolution(x,y," 1920x1080 ") && x==1920 && y==1080);
     for (const auto &bad: {"", "x", "1920x", "x1080", "-1x480", "0x480", "1x2x3", "99999999999999999999999999x480"})

@@ -15,6 +15,7 @@
 
 namespace Utility
 {
+	bool parseDuration(double &seconds, const std::string &input);
 	bool parseNumericResolution(unsigned long &x, unsigned long &y, const std::string &input);
 
 	template<typename T, typename I>

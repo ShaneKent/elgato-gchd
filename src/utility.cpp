@@ -92,6 +92,19 @@ namespace Utility
 	// [::1]:1 is IPV6 loopback address port 1.
 	// 127.0.0.1:1 IPV4 example
 	// [127.0.0.1]:1 optional IPV4 usage.
+    bool parseDuration(double &seconds, const std::string &input) {
+        if (input.empty()) return false;
+        std::string number=input; double multiplier=1;
+        if (number.back()=='s' || number.back()=='m' || number.back()=='h') {
+            const char suffix=number.back(); number.pop_back();
+            multiplier=suffix=='h' ? 3600 : (suffix=='m' ? 60 : 1);
+        }
+        char *end=nullptr; errno=0;
+        const double value=std::strtod(number.c_str(),&end);
+        if (end==number.c_str() || *end || errno==ERANGE || !std::isfinite(value) || value<=0 || value*multiplier>31536000) return false;
+        seconds=value*multiplier; return true;
+    }
+
 	bool parseNumericResolution(unsigned long &x, unsigned long &y, const std::string &input) {
         const auto separator = input.find('x');
         if (separator == std::string::npos || input.find('x', separator+1) != std::string::npos) return false;
@@ -104,7 +117,7 @@ namespace Utility
             char *end = nullptr;
             errno = 0;
             values[i] = std::strtoul(parts[i].c_str(), &end, 10);
-            if (errno == ERANGE || *end || values[i] == 0) return false;
+            if (errno == ERANGE || *end || values[i] == 0 || values[i] > UINT_MAX) return false;
         }
         x=values[0]; y=values[1]; return true;
     }

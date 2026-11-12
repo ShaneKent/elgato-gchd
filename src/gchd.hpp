@@ -54,6 +54,8 @@ class GCHD {
 	public:
 		int checkDevice();
 		void resetDevice();
+		uint64_t overflows() const { return overflows_; }
+		uint64_t timeouts() const { return timeouts_; }
 		void setFirmwareDirectory(const std::string &directory) { firmwareDirectory_=directory; }
 		int init();
 		void stream(std::vector<unsigned char> *buffer, unsigned timeout=TIMEOUT);
@@ -64,6 +66,7 @@ class GCHD {
 		libusb_context *context_ = nullptr;
 		bool interfaceClaimed_ = false;
 		bool deviceGone_ = false;
+		uint64_t overflows_=0, timeouts_=0;
 		bool shuttingDown_ = false;
 		std::chrono::steady_clock::time_point shutdownDeadline_;
 		void checkUsbOperation();

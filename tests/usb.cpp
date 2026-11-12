@@ -1,4 +1,5 @@
 #include "gchd.hpp"
+#include "streamer.hpp"
 #include <cstdio>
 #include <unistd.h>
 #include <stdexcept>
@@ -50,6 +51,10 @@ int main() {
         code=LIBUSB_ERROR_TIMEOUT; throws([&] { UsbTestAccess::firmware(g,path); });
         code=0; length=16; const int before=calls; UsbTestAccess::firmware(g,path); check(calls==before+1);
         unlink(path);
+        code=LIBUSB_ERROR_TIMEOUT; length=0;
+        Streamer streamer(&g,&process,StreamOutput::Disk); check(streamer.disk.enable("/dev/null")==0);
+        const auto start=std::chrono::steady_clock::now(); streamer.loop(0.02);
+        check(std::chrono::steady_clock::now()-start<std::chrono::seconds(1));
         Process::setActive(false); throws([&] { std::vector<unsigned char> b; g.stream(&b); });
     }
 }

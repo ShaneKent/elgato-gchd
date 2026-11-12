@@ -94,7 +94,8 @@ void GCHD::stream(std::vector<unsigned char> *buffer, unsigned timeout) {
     buffer->resize(DATA_BUF);
     int transferred = 0;
     const int result=libusb_bulk_transfer(devh_, 0x81, buffer->data(), DATA_BUF, &transferred, timeout ? timeout : TIMEOUT);
-    if (result == LIBUSB_ERROR_OVERFLOW) { buffer->clear(); return; }
+    if (result == LIBUSB_ERROR_OVERFLOW) { ++overflows_; buffer->clear(); return; }
+    if (result == LIBUSB_ERROR_TIMEOUT) ++timeouts_;
     if (result != 0 && result != LIBUSB_ERROR_TIMEOUT) {
         buffer->clear(); usbFailure(result, "USB streaming read");
     }
