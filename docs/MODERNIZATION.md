@@ -103,7 +103,8 @@ WSL environments without udev.
 README and WSL2.md document build, official firmware extraction, non-root use,
 new FIFO location, stdout/ffmpeg recording, reset and attach behavior. Windows
 commands are separated into one-time admin bind and recurring non-admin attach.
-No Windows commands were executed in this modernization task.
+Windows-side diagnostics and attachment changes were subsequently executed with
+the user's explicit approval; see Phase 8 and USB-TRACING.md.
 
 gchd-record.sh forwards stop signals as SIGINT to the driver, waits for EOF and
 ffmpeg container finalization, refuses existing output, and checks both child
@@ -130,6 +131,9 @@ Tests ran as the regular Linux user after granting video-group access.
 | Official Windows preview then close/reattach | First idle-firmware chunk still timed out; zero stream bytes |
 | Preserve already-active USB configuration | Mock tests pass; real warm-start comparison still failed at first firmware chunk |
 | Persistent udev rule | root:video 0660 and regular-user USB access observed after reattachments |
+| Graceful Windows handoff, later test | First B8 command returned LIBUSB_ERROR_PIPE; exit 1, zero stream bytes |
+| Native versus WSL ETW headers | Matching initial control headers; native B8 success versus WSL USB STALL |
+| Broader native ETW startup | 9,751 successful control completions; command/register payloads were not emitted |
 
 No successful firmware upload, valid 30-second recording, or real stream has
 been observed. Streaming Ctrl+C/restart, unplug during streaming, loss counts
@@ -149,14 +153,26 @@ agent's upstream-only logs in the shared workspace were preserved unchanged.
 The failure is before HDMI detection or bulk-IN streaming. There is no evidence
 that input resolution or async receive queues would fix it. The current evidence
 does not distinguish an unofficial-driver boot-protocol mismatch from USB/IP
-transport behavior. The next useful comparison is official Windows startup USB
-requests versus the WSL startup. Windows ETW/Logman is available and can collect
-headers/status without installing a driver or restarting. USBPcap is optional,
-not a prerequisite. No new Windows capture driver has been installed.
+transport behavior. Native Windows and WSL startup headers have now been
+compared using built-in ETW, with explicit approval for Windows commands, UAC, app startup/shutdown and
+attachment changes. The first nine control headers match. The first B8 command
+succeeds natively but returns USB STALL under WSL after a graceful handoff.
+A later native warm-start trace again shows successful B8 commands. This does
+not establish whether command contents, device state or USB/IP is responsible.
 
-Native Windows preview was performed by the user. Subsequent agent Windows
-commands were explicitly approved inventory/provider checks only; no trace or
-attachment change has been performed by the agent as of this report.
+After the user's request to collect broader startup information, control data
+logging was enabled across UCX and the host-controller provider. The final
+20-second native trace yielded 20,010 selected-card transfer events, including
+9,751 successful control completions, but no payload-data events. The exact
+six-byte payload filter was removed for this broader check. Thus the missing
+payloads cannot be attributed solely to that narrow filter. Register values
+and command contents remain unavailable from these ETW traces.
+
+No USBPcap driver was installed and Windows was not restarted. Repeating the
+same ETW capture is not a useful next step. A payload-capable native capture or
+an independent native-Linux hardware comparison is needed before changing the
+boot protocol based on assumptions. See [USB-TRACING.md](USB-TRACING.md) for the
+trace settings, verified limits and next-capture scope.
 
 ## Defect and verification summary
 
@@ -167,7 +183,7 @@ attachment change has been performed by the agent as of this report.
 | 7–8 writes/backpressure | Fixed | Partial writes, EPIPE, /dev/full, queue saturation and bounded cancellation tests |
 | 9 socket connection loop | Fixed | Reviewed address iteration and RAII cleanup; real network streaming unverified |
 | 10–11 signals | Fixed | Initialized dispositions, SIGHUP and second-signal subprocess tests |
-| 12 udev tags | Fixed | udevadm verify; real permissions unverified |
+| 12 udev tags | Fixed | udevadm verify; real video-group access after reattachments; seat ACLs unverified |
 
 Additional fixes: explicit libusb context and automatic kernel-driver reattach;
 firmware override/hash checks and no implicit cwd search; resolution/numeric

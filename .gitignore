@@ -17,3 +17,6 @@ mb86*.bin
 *.pcap
 *.pcapng
 *.etl
+
+# Local Python diagnostic/test imports.
+__pycache__/

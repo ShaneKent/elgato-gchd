@@ -55,5 +55,34 @@
     "capture_bytes": 0,
     "windows_preview_audio_confirmed_by_user": true,
     "udev_permissions_after_reattach": true
+  },
+  {
+    "test": "hardware-etw-wsl-20261112T061112Z",
+    "returncode": 1,
+    "elapsed_seconds": 0.025,
+    "capture_bytes": 0,
+    "observed_error": "LIBUSB_ERROR_PIPE on first B8 command"
+  },
+  {
+    "test": "hardware-graceful-handoff-20261112T060507Z",
+    "revision": "1ce119636f264c0f978775ae9d2c7182e12a3181",
+    "returncode": 1,
+    "elapsed_seconds": 0.042,
+    "capture_bytes": 0,
+    "observed_error": "LIBUSB_ERROR_PIPE on first B8 command"
+  },
+  {
+    "test": "native-broader-etw-20261112T063916Z",
+    "duration_seconds": 20,
+    "selected_transfer_events": 20010,
+    "control_submissions": 9751,
+    "successful_control_completions": 9751,
+    "bulk_interrupt_submissions": 274,
+    "bulk_interrupt_completions": 234,
+    "control_payload_data_events": 0,
+    "payload_fields": 0,
+    "usbpcap_installed": false,
+    "windows_restarted": false,
+    "hardware_recording_verified": false
   }
 ]
