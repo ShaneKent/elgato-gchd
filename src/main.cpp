@@ -174,11 +174,13 @@ enum class Args:int {
 	FULL_HELP,
 	VERSION,
 	PID_PATH,
+	RESET,
 };
 
 int main(int argc, char *argv[]) {
 	// object for managing runtime information
 	Process process;
+	bool reset = false;
 
 	// set program name
 	process.setName(argv[0]);
@@ -214,6 +216,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 
 	struct option longOpts[]={
+	{"reset", no_argument, NULL, (int)Args::RESET},
 	{"i", required_argument, NULL, (int)Args::INPUT_SOURCE},
 	{"input", required_argument, NULL, (int)Args::INPUT_SOURCE},
 	{"c", required_argument, NULL, (int)Args::COLOR_SPACE},
@@ -304,6 +307,7 @@ int main(int argc, char *argv[]) {
 
 			Args arg=(Args)opt;
 			switch (arg) {
+				case Args::RESET: reset = true; break;
 				case Args::INPUT_SOURCE: {
 					if (std::string(optarg) == "composite") {
 						inputSettings.setSource(InputSource::Composite);
@@ -684,6 +688,8 @@ int main(int argc, char *argv[]) {
 	//stack unwinding will destruct object, calling uninit.
 	try {
 		GCHD gchd(&process, inputSettings, transcoderSettings);
+
+		if (reset) { gchd.resetDevice(); return EXIT_SUCCESS; }
 
 		if(gchd.checkDevice()) {
 			return EXIT_FAILURE;
