@@ -30,7 +30,7 @@ void GCHD::configureDevice()
 	//but only in the case that the current state
 	//(as read from SCMD_STATE_READBACK_REGISTER)
 	//is already 0.
-	uint16_t state;
+	uint16_t state = 0;
 	if( deviceType_ == DeviceType::GameCaptureHD )
 	{
 		//Since currentState and nextState are set to 0,

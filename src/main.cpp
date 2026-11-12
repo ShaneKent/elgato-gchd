@@ -122,7 +122,7 @@ void help(std::string name, bool full) {
 	}
 }
 
-void option_error(std::string name, std::string option, std::string error) {
+void option_error(std::string /*name*/, std::string option, std::string error) {
 	std::cerr << "Invalid option `" << option << "':" << std::endl;
 	std::cerr << error << std::endl;
 }
@@ -139,7 +139,7 @@ void parameter_unknown(std::string name, std::string option, const std::vector<s
 	std::cerr << "Try '" << name << " -h' for more information." << std::endl;
 }
 
-void parameter_error(std::string name, std::string option, std::string error) {
+void parameter_error(std::string /*name*/, std::string option, std::string error) {
 	std::cerr << "Invalid argument '" << optarg << "' for '" << option << "':" << std::endl;
 	std::cerr << error << std::endl;
 }
